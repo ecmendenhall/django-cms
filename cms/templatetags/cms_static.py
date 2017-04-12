@@ -25,8 +25,23 @@ def do_static_with_version(parser, token):
     return StaticWithVersionNode.handle_token(parser, token)
 
 
+from django.apps import apps
+from django.templatetags.static import PrefixNode
+from django.utils.six.moves.urllib.parse import urljoin
+
+
 class StaticWithVersionNode(StaticNode):
 
     def url(self, context):
         url = super(StaticWithVersionNode, self).url(context)
         return static_with_version(url)
+
+    @classmethod
+    def handle_simple(cls, path):
+        path_with_version = static_with_version(path)
+
+        if apps.is_installed('django.contrib.staticfiles'):
+            from django.contrib.staticfiles.storage import staticfiles_storage
+            return staticfiles_storage.url(path_with_version)
+        else:
+            return urljoin(PrefixNode.handle_simple("STATIC_URL"), path_with_version)
